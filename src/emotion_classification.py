@@ -9,9 +9,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.stem import PorterStemmer
 
 df = pd.read_csv('data/train_data.csv')
-
-a=df.loc[0,'content']
 stemming=PorterStemmer()
+
 # cleaning steps:
 def filter(text):
     text2 = text.split()
