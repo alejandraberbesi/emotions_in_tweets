@@ -10,6 +10,7 @@ from nltk.stem import PorterStemmer
 
 df = pd.read_csv('data/train_data.csv')
 stemming=PorterStemmer()
+print(df.groupby('sentiment').count()) #categories are unbalanced
 
 # cleaning steps:
 def filter(text):
@@ -26,7 +27,7 @@ X = tfidfconverter.fit_transform(df['content']).toarray()
 y=np.array(df['sentiment'])
 
 X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=0.20,random_state = 10)
-clf = RandomForestClassifier(n_estimators=500, random_state=100, class_weight = "balanced")
+clf = RandomForestClassifier(n_estimators=100, random_state=100,class_weight = "balanced")
 clf.fit(X_train, y_train)
 y_pred=clf.predict(X_test)
 
