@@ -27,22 +27,26 @@ def clean_text(text):
 df['content'] = df['content'].apply(clean_text)
 df['content'] = df['content'].str.replace('\d+', '') #remove digits
 
-# The maximum number of words to be used
+
 MAX_NB_WORDS = 50000
-# Max number of words in each tweet.
 MAX_SEQUENCE_LENGTH = 250
 EMBEDDING_DIM = 100
 
-tokenizer = Tokenizer(num_words=MAX_NB_WORDS, filters='!"#$%&()*+,-./:;<=>?@[\]^_`{|}~', lower=True)
+#to vectorize a text corpus
+#num_words: the maximum number of words to keep, based on word frequency. 
+#filters: more characters to exclude
+tokenizer = Tokenizer(num_words=MAX_NB_WORDS, filters='=!"#$%&*+-.:<=>?\^_`~')
+#This method creates the vocabulary index based on word frequency,lower integer means more frequent word
 tokenizer.fit_on_texts(df['content'].values)
-word_index = tokenizer.word_index
-#print('Found %s unique tokens.' % len(word_index))
+word_index = tokenizer.word_index 
+#print('%s unique tokens' % len(word_index))
 
+#Transform each text in a sequence of integers
 X = tokenizer.texts_to_sequences(df['content'].values)
+#to produce batches for training/validation
 X = pad_sequences(X, maxlen=MAX_SEQUENCE_LENGTH)
 #print('Shape of data tensor:', X.shape)
-
-Y = pd.get_dummies(df['sentiment']).values
+Y = pd.get_dummies(df['sentiment']).values #from categorical to dummy
 #print('Shape of label tensor:', Y.shape)
 
 X_train, X_test, Y_train, Y_test = train_test_split(X,Y, test_size = 0.20, random_state = 100)
