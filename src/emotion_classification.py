@@ -7,24 +7,47 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Embedding, LSTM, SpatialDropout1D
+from tensorflow.keras.layers import Dense, Embedding, LSTM, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 import matplotlib.pylab as plt
 
 df=pd.read_csv('data/train_data.csv')
 #df.sentiment.value_counts() #unbalanced data, 13 categories
 
+replace_list = {r"i'm": 'i am',
+                r"'re": ' are',
+                r"let’s": 'let us',
+                r"'s":  ' is',
+                r"'ve": ' have',
+                r"can't": 'can not',
+                r"cannot": 'can not',
+                r"shan’t": 'shall not',
+                r"n't": ' not',
+                r"'d": ' would',
+                r"'ll": ' will',
+                r"'scuse": 'excuse',
+                ',': ' ,',
+                '.': ' .',
+                '!': ' !',
+                '?': ' ?',
+                '\s+': ' '}
+
 STOPWORDS = set(stopwords.words('english'))
+
 def clean_text(text):
     text = text.lower()
+    for s in replace_list:
+        text = text.replace(s, replace_list[s])
     text = ' '.join(word for word in text.split() if word not in STOPWORDS) 
+    text = ' '.join(text.split())
     return text
 
 df['content'] = df['content'].apply(clean_text)
 df['content'] = df['content'].str.replace('\d+', '') #remove digits
 
+max_words=1000
 #convert each word into an index
-tokenizer = Tokenizer(filters='\n\t!"#$%&()*+,-./:;<=>?[\]^_`{|}~ ')
+tokenizer = Tokenizer(num_words=max_words,filters='\n\t!"#$%&()*+,-./:;<=>?[\]^_`{|}~ ')
 tokenizer.fit_on_texts(df['content'].values)
 word_index = tokenizer.word_index 
 
@@ -35,6 +58,7 @@ for i in a:
     b.append(len(i)) 
 MAX_SEQUENCE_LENGTH = max(b) #largest length of filtered tweets
 #arrays with zeros and/or words indexes:
+
 X = pad_sequences(a, maxlen=MAX_SEQUENCE_LENGTH)
 #emotions categories classified with arrays of zeros and ones
 Y = pd.get_dummies(df['sentiment']).values
@@ -43,20 +67,22 @@ Y = pd.get_dummies(df['sentiment']).values
 X_train, X_test, Y_train, Y_test = train_test_split(X,Y, test_size = 0.20, random_state = 100)
 
 #size of the vocabulary, maximum integer index + 1 : 
-INPUT_DIM=len(word_index)
+#INPUT_DIM=len(word_index)+1
 #output_dim for embedding layer:
 EMBEDDING_DIM = 100 ######
 
 model = Sequential()
 #input_length=MAX_SEQUENCE_LENGTH
-model.add(Embedding(INPUT_DIM, EMBEDDING_DIM, input_length=X.shape[1]))
+model.add(Embedding(max_words, EMBEDDING_DIM, input_length=X.shape[1]))
 #how many units do i turn off:
-model.add(SpatialDropout1D(0.2))
-model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
+model.add(SpatialDropout1D(0.3))
+model.add(LSTM(100, dropout = 0.3, recurrent_dropout = 0.3))
+model.add(Dense(100, activation = 'relu'))
+model.add(Dropout(0.3))
 model.add(Dense(13, activation='softmax'))
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 
-epochs = 3
+epochs = 10
 batch_size = 64
 
 history = model.fit(X_train, Y_train, epochs=epochs, batch_size=batch_size,validation_split=0.1)
