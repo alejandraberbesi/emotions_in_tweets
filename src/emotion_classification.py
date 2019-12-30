@@ -7,9 +7,10 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Embedding, LSTM, Dropout
+from tensorflow.keras.layers import Dense, Embedding, LSTM, Dropout, SpatialDropout1D
 from tensorflow.keras.callbacks import EarlyStopping
 import matplotlib.pylab as plt
+import numpy as np
 
 df=pd.read_csv('data/train_data.csv')
 #df.sentiment.value_counts() #unbalanced data, 13 categories
@@ -33,9 +34,11 @@ replace_list = {r"i'm": 'i am',
                 '\s+': ' '}
 
 STOPWORDS = set(stopwords.words('english'))
+REPLACE_BY_SPACE_RE = re.compile('[\n\t!"#$%&()*+,-./:;<=>?\^_`{|}~@ ]')
 
 def clean_text(text):
     text = text.lower()
+    text = REPLACE_BY_SPACE_RE.sub(' ', text) 
     for s in replace_list:
         text = text.replace(s, replace_list[s])
     text = ' '.join(word for word in text.split() if word not in STOPWORDS) 
@@ -45,14 +48,18 @@ def clean_text(text):
 df['content'] = df['content'].apply(clean_text)
 df['content'] = df['content'].str.replace('\d+', '') #remove digits
 
+#df[df['content']==''].count()
+df=df.drop(df[df['content']==''].index) #remove blank cells of content
+
 max_words=1000
 #convert each word into an index
-tokenizer = Tokenizer(num_words=max_words,filters='\n\t!"#$%&()*+,-./:;<=>?[\]^_`{|}~ ')
+tokenizer = Tokenizer(num_words=max_words)
 tokenizer.fit_on_texts(df['content'].values)
 word_index = tokenizer.word_index 
 
 #Transform each tweet in a sequence of integers/indexes of words
 a = tokenizer.texts_to_sequences(df['content'].values)
+
 b=list()
 for i in a:
     b.append(len(i)) 
